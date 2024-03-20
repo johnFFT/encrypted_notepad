@@ -4,10 +4,12 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import sys
 import tkinter as tk
+import tkinter.scrolledtext as scrolledtext
 from tkinter.filedialog import askopenfile, asksaveasfilename
 
 
 TIMEOUT_PASSWORD = "p4ssw0rd*"
+TIMEOUT_TIME = 300 # seconds until timeout
 
 
 def getKey(pword):
@@ -24,7 +26,7 @@ class App:
         self.parent.title("Untitled.txt")
         self.parent.rowconfigure(0, minsize=800, weight=1)
         self.parent.columnconfigure(1, minsize=800, weight=1)
-        #self.parent.iconbitmap(ICON_DIR)
+        self.parent.iconbitmap('notepadIcon.ico')
         self.fileName = None
         self.decryptedText = ""
         self.Key = None
@@ -41,15 +43,15 @@ class App:
         self.parent.protocol("WM_DELETE_WINDOW", self.quitProgram) # if app window closes via clicking the [X] button
 
         # timeout stuff
-        self.timeoutLength = 5*60*1000 # 5 minutes
+        self.timeoutLength = TIMEOUT_TIME*1000
         self.timeoutId = self.parent.after(self.timeoutLength,self.timeout)
 
         # Menu Bar 
         # File      
         self.menuBar = tk.Menu(self.parent, background='#ffcc99', foreground='black',
-                               activebackground='white', activeforeground='black')
+                               activebackground='white', activeforeground='black',font=('Segoe UI',10))
         self.menuFile = tk.Menu(self.menuBar, tearoff=False, background='#eeeeee',
-                                foreground='black')
+                                foreground='black',font=('Segoe UI',10))
         self.menuBar.add_cascade(label="File",menu=self.menuFile)
         self.menuFile.add_command(label="New File",command=lambda : self.createNewFile())
         self.menuFile.add_command(label="Open",command=lambda : self.openFile())
@@ -60,7 +62,7 @@ class App:
         self.menuFile.add_command(label="Exit",command=lambda : self.quitProgram())
         # Edit
         self.menuEdit = tk.Menu(self.menuBar, tearoff=False, background='#eeeeee',
-                                foreground='black')
+                                foreground='black',font=('Segoe UI',10))
         self.menuEdit.add_command(label="Undo",command=lambda : self.textBox.event_generate("<<Undo>>"))
         self.menuEdit.add_command(label="Cut",command=lambda : self.textBox.event_generate("<<Cut>>"))
         self.menuEdit.add_command(label="Copy",command=lambda : self.textBox.event_generate("<<Copy>>"))
@@ -88,9 +90,8 @@ class App:
         popUp.title("Timeout")
         popUp.geometry("400x200")
         popUp.bind('<Return>', lambda e : verifyPassword())
-        #popUp.overrideredirect(True)
         popUp.protocol("WM_DELETE_WINDOW", doNothing)
-        pLabel = tk.Label(popUp, text="Session timed out; please enter password", font=('Segoe UI',13))
+        pLabel = tk.Label(popUp, text="Session timed out; please enter password", font=('Segoe UI',12))
         pLabel.pack()
         pText = tk.Entry(popUp, show="*", width=30)
         pText.pack()
@@ -103,14 +104,11 @@ class App:
 
 
     def textBoxInit(self,parent):
-        textBox = tk.Text(parent, wrap=tk.WORD, undo=True)
+        textBox = scrolledtext.ScrolledText(parent, wrap=tk.WORD, undo=True, font=('Courier',11))
         textBox.insert(1.0,self.decryptedText)
         textBox.bind('<KeyRelease>',self.setTitle)
         textBox.bind('<Button-1>',self.setTitle)
-        textBox.grid(row=0,column=1,stick="nsew") # column=1
-        scrollbar = tk.Scrollbar(textBox, command=textBox.yview)
-        scrollbar.pack( side = tk.RIGHT, fill=tk.Y )
-        textBox['yscrollcommand'] = scrollbar.set
+        textBox.grid(row=0,column=1,stick="nsew", pady=(0,20))
         return textBox
 
 
@@ -205,6 +203,9 @@ class App:
             self.writeToFile()
 
     def rewritePassword(self):
+        if not self.fileName: # New doc
+            self.saveAsHelper()
+            return
         with open(self.fileName,"r") as file:
             encryptedText = file.read()
         self.guessPassword(encryptedText)
@@ -228,6 +229,8 @@ class App:
         # called by openFile and rewritePassword (and timeOut)
         # basically the authentication function, and is based on the last saved encrypted text
         self.COUNT = 3
+        def doNothing():
+            pass
         def verifyPassword(event):
             self.COUNT -= 1
             if self.COUNT==0:
@@ -249,6 +252,7 @@ class App:
         popUp.title("")
         popUp.geometry("300x200")
         popUp.bind('<Return>',verifyPassword)
+        popUp.protocol("WM_DELETE_WINDOW", doNothing)
         pText = tk.Entry(popUp, show="*", width=30)
         pText.pack()
         self.parent.wait_window(popUp)
@@ -314,7 +318,7 @@ class App:
             self.textBox.delete(1.0,"end")
             with open(self.fileName,"r") as file:
                 encryptedText = file.read()
-            self.guessPassword(encryptedText) # setting Key and descryptedText here
+            self.guessPassword(encryptedText) # setting Key and decryptedText here
             self.textBox.insert(1.0,self.decryptedText)
 
 
