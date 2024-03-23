@@ -33,12 +33,12 @@ class App:
 
         self.textBox = self.textBoxInit(parent)
 
-        self.parent.bind('<Control-o>',lambda event : self.openFile())
-        self.parent.bind('<Control-s>',lambda event : self.saveFile())
-        self.parent.bind('<Control-Shift-s>',lambda event : self.saveAsHelper())
-        self.parent.bind('<Control-r>',lambda event : self.rewritePassword())
-        self.parent.bind('<Control-n>',lambda event : self.createNewFile())
-        self.parent.bind('<Control-q>',lambda event : self.quitProgram())
+        self.parent.bind('<Control-o>',lambda _ : self.openFile())
+        self.parent.bind('<Control-s>',lambda _ : self.saveFile())
+        self.parent.bind('<Control-Shift-s>',lambda _ : self.saveAsHelper())
+        self.parent.bind('<Control-r>',lambda _ : self.rewritePassword())
+        self.parent.bind('<Control-n>',lambda _ : self.createNewFile())
+        self.parent.bind('<Control-q>',lambda _ : self.quitProgram())
 
         self.parent.protocol("WM_DELETE_WINDOW", self.quitProgram) # if app window closes via clicking the [X] button
 
@@ -154,7 +154,7 @@ class App:
                 self.arr = ["",None]
                 self.parent = parent
                 self.quit = False
-            def set(self,event):
+            def set(self,_):
                 self.arr[self.idx] = self.pText.get()
                 self.pText.delete(0,"end")
                 self.savePopUp.destroy()
@@ -183,9 +183,9 @@ class App:
                     self.idx = 1-self.idx
                 return self.quit, self.arr[0]
         p = PassHandle(self.parent)
-        quitBool, key = p.run()
+        quitBool, keyword = p.run()
         if not quitBool:
-            self.Key = getKey(key)
+            self.Key = getKey(keyword)
         return quitBool
         
 
