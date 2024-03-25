@@ -4,7 +4,7 @@ import tkinter as tk
 import os
 
 
-
+# Define a child class that can be used to test tkinter GUIs
 class TKinterTestCase(unittest.TestCase):
     def setUp(self):
         self.root=tk.Tk()
