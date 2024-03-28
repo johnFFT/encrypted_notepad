@@ -10,6 +10,7 @@ from tkinter.filedialog import askopenfile, asksaveasfilename
 
 TIMEOUT_PASSWORD = "p4ssw0rd*"
 TIMEOUT_TIME = 300 # seconds until timeout
+DEFAULT_UNTITLED = "Untitled.txt"
 
 
 def getKey(pword):
@@ -23,7 +24,7 @@ def getKey(pword):
 class App:
     def __init__(self,parent):
         self.parent = parent
-        self.parent.title("Untitled.txt")
+        self.parent.title(DEFAULT_UNTITLED)
         self.parent.rowconfigure(0, minsize=800, weight=1)
         self.parent.columnconfigure(1, minsize=800, weight=1)
         self.parent.iconbitmap('notepadIcon.ico')
@@ -39,6 +40,7 @@ class App:
         self.parent.bind('<Control-r>',lambda _ : self.rewritePassword())
         self.parent.bind('<Control-n>',lambda _ : self.createNewFile())
         self.parent.bind('<Control-q>',lambda _ : self.quitProgram())
+        self.parent.bind('<Control-l>',lambda _ : self.timeout()) # might be worth making a new function rather than using timeout
 
         self.parent.protocol("WM_DELETE_WINDOW", self.quitProgram) # if app window closes via clicking the [X] button
 
@@ -58,6 +60,7 @@ class App:
         self.menuFile.add_command(label="Save",command=lambda : self.saveFile())
         self.menuFile.add_command(label="Save As",command=lambda : self.saveAsHelper())
         self.menuFile.add_command(label="Rewrite Password",command=lambda : self.rewritePassword())
+        self.menuFile.add_command(label="Lock App",command=lambda : self.timeout())
         self.menuFile.add_separator()
         self.menuFile.add_command(label="Exit",command=lambda : self.quitProgram())
         # Edit
@@ -89,6 +92,7 @@ class App:
         popUp = tk.Toplevel(self.parent)
         popUp.title("Timeout")
         popUp.geometry("400x200")
+        popUp.geometry("+%d+%d" %(self.parent.winfo_x()+(self.parent.bbox()[2]-306)//2,self.parent.winfo_y()+min(300,(self.parent.bbox()[3]-117)//2)))
         popUp.bind('<Return>', lambda e : verifyPassword())
         popUp.protocol("WM_DELETE_WINDOW", doNothing)
         pLabel = tk.Label(popUp, text="Session timed out; please enter password", font=('Segoe UI',12))
@@ -120,7 +124,7 @@ class App:
     def setTitle(self,event):
         self.resetTimer()
         hasChanged = self.textChanged()
-        fileName = self.fileName if self.fileName else "Untitled.txt"
+        fileName = self.fileName if self.fileName else DEFAULT_UNTITLED
         if hasChanged:
             self.parent.title("*"+fileName)
         else:
@@ -190,7 +194,7 @@ class App:
         
 
     def saveAsHelper(self):
-        initFileName = self.fileName if self.fileName else "Untitled"
+        initFileName = self.fileName if self.fileName else DEFAULT_UNTITLED.split('.')[0]
         quitBool = self.setNewFilePassword()
         if quitBool:
             return
@@ -219,7 +223,7 @@ class App:
         if not keepGoing:
             return
         self.fileName = None
-        self.parent.title("Untitled.txt")
+        self.parent.title(DEFAULT_UNTITLED)
         self.decryptedText = ""
         self.textBox.delete(1.0,"end")
         self.Key = None
@@ -290,7 +294,7 @@ class App:
             popUp.bind("<Escape>",lambda event : pushButton("c"))
             self.textBox['bg'] = '#888888'
             self.textBox['fg'] = '#686868'
-            fileName = self.fileName.split('/')[-1] if self.fileName else "Untitiled.txt"
+            fileName = self.fileName.split('/')[-1] if self.fileName else DEFAULT_UNTITLED
             saveText = tk.Label(popUp, text=f'Would you like to save changes to "{fileName}"?', bg=popUp['bg'])
             saveText.grid(row=0,columnspan=3,pady=15,padx=20)
             saveButton = tk.Button(popUp,text="Save",height = 1, width=10, bg='#0969ff', fg='#ffffff', command = lambda : pushButton("s"))
@@ -310,7 +314,7 @@ class App:
             return
         # Open file
         fileObj = askopenfile(title="Please select a file",
-                              filetypes=[('All Text Files',['.txt','.json']),
+                              filetypes=[('All Text Files',['.txt','.json', '.autosave']),
                                          ('.txt','.txt'), ('.json','.json')])
         if fileObj:
             self.fileName = fileObj.name
