@@ -1,23 +1,9 @@
-import base64
-from cryptography.fernet import Fernet, InvalidToken
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-import sys
 import tkinter as tk
-import tkinter.scrolledtext as scrolledtext
+from TextBox import TextBox
 from tkinter.filedialog import askopenfile, asksaveasfilename
-
-
-TIMEOUT_PASSWORD = "p4ssw0rd*"
-TIMEOUT_TIME = 300 # seconds until timeout
-DEFAULT_UNTITLED = "Untitled.txt"
-
-
-def getKey(pword):
-    password = pword.encode()
-    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=b's\xa3E\x8a\x18\xb9\x8b\xc0">R[\x1b\xbdQ|', iterations=4000)
-    key = base64.urlsafe_b64encode(kdf.derive(password))
-    return Fernet(key)
+from config import TIMEOUT_TIME, DEFAULT_UNTITLED
+from KeyPass import getKey, guessPasswordHelper, timeoutGuesser
+from PopUpHelper import newPasswordPopUp, saveChangesPopUp
 
 
 
@@ -32,7 +18,9 @@ class App:
         self.decryptedText = ""
         self.Key = None
 
-        self.textBox = self.textBoxInit(parent)
+        self.textBox = TextBox(parent, wrap=tk.WORD, undo=True, font=('Courier',11))
+        self.textBox.bind('<KeyRelease>',self.setTitle)
+        self.textBox.bind('<Button-1>',self.setTitle)
 
         self.parent.bind('<Control-o>',lambda _ : self.openFile())
         self.parent.bind('<Control-s>',lambda _ : self.saveFile())
@@ -80,40 +68,10 @@ class App:
             self.parent.after_cancel(self.timeoutId)
             self.timeoutId = self.parent.after(self.timeoutLength,self.timeout)
 
+
     def timeout(self):
-        def verifyPassword():
-            pWord = pText.get()
-            pText.delete(0,"end")
-            if pWord == TIMEOUT_PASSWORD:
-                popUp.destroy()
-        def doNothing():
-            pass
-        self.parent.withdraw()
-        popUp = tk.Toplevel(self.parent)
-        popUp.title("Timeout")
-        popUp.geometry("400x200")
-        popUp.geometry("+%d+%d" %(self.parent.winfo_x()+(self.parent.bbox()[2]-306)//2,self.parent.winfo_y()+min(300,(self.parent.bbox()[3]-117)//2)))
-        popUp.bind('<Return>', lambda e : verifyPassword())
-        popUp.protocol("WM_DELETE_WINDOW", doNothing)
-        pLabel = tk.Label(popUp, text="Session timed out; please enter password", font=('Segoe UI',12))
-        pLabel.pack()
-        pText = tk.Entry(popUp, show="*", width=30)
-        pText.pack()
-        self.parent.wait_window(popUp)
-        try:
-            self.parent.deiconify()
-        except:
-            sys.exit(0)
+        timeoutGuesser(self.parent)
         self.timeoutId = self.parent.after(self.timeoutLength,self.timeout)
-
-
-    def textBoxInit(self,parent):
-        textBox = scrolledtext.ScrolledText(parent, wrap=tk.WORD, undo=True, font=('Courier',11))
-        textBox.insert(1.0,self.decryptedText)
-        textBox.bind('<KeyRelease>',self.setTitle)
-        textBox.bind('<Button-1>',self.setTitle)
-        textBox.grid(row=0,column=1,stick="nsew", pady=(0,20))
-        return textBox
 
 
     def textChanged(self):
@@ -121,7 +79,7 @@ class App:
         return text!=self.decryptedText
 
 
-    def setTitle(self,event):
+    def setTitle(self,_):
         self.resetTimer()
         hasChanged = self.textChanged()
         fileName = self.fileName if self.fileName else DEFAULT_UNTITLED
@@ -153,41 +111,7 @@ class App:
             
 
     def setNewFilePassword(self):
-        class PassHandle:
-            def __init__(self,parent):
-                self.arr = ["",None]
-                self.parent = parent
-                self.quit = False
-            def set(self,_):
-                self.arr[self.idx] = self.pText.get()
-                self.pText.delete(0,"end")
-                self.savePopUp.destroy()
-            def quitWindow(self):
-                self.quit = True
-                self.savePopUp.destroy()
-            def popUp(self,pVerb):
-                self.savePopUp = tk.Toplevel(self.parent)
-                self.savePopUp.protocol("WM_DELETE_WINDOW", self.quitWindow)
-                self.savePopUp.geometry("300x120")
-                self.savePopUp.focus_set()
-                self.savePopUp.grab_set()
-                label = tk.Label(self.savePopUp, text="Please "+pVerb+" password")
-                label.pack()
-                self.pText = tk.Entry(self.savePopUp, show="*", width=30)
-                self.pText.pack()
-                self.savePopUp.bind('<Return>',self.set)
-                self.parent.wait_window(self.savePopUp)
-            def run(self):
-                pVerb = ["set","confirm"]
-                self.idx = 0
-                while not self.quit and self.arr[0]!=self.arr[1]:
-                    if self.idx == 0:
-                        self.arr = ["",None]
-                    self.popUp(pVerb[self.idx])
-                    self.idx = 1-self.idx
-                return self.quit, self.arr[0]
-        p = PassHandle(self.parent)
-        quitBool, keyword = p.run()
+        quitBool, keyword = newPasswordPopUp(self.parent)
         if not quitBool:
             self.Key = getKey(keyword)
         return quitBool
@@ -198,13 +122,12 @@ class App:
         quitBool = self.setNewFilePassword()
         if quitBool:
             return
-        fileName = asksaveasfilename(initialfile = initFileName,
-                                defaultextension=".txt",
-                                filetypes=[('All Text Files',['.txt','.json']),
-                                           ('.txt','.txt'), ('.json','.json')])
+        fileTypes = [('All Text Files',['.txt','.json', '.autosave']), ('.txt','.txt'), ('.json','.json')]
+        fileName = asksaveasfilename(initialfile = initFileName, defaultextension=".txt", filetypes = fileTypes)
         if fileName:
             self.fileName = fileName
             self.writeToFile()
+
 
     def rewritePassword(self):
         if not self.fileName: # New doc
@@ -218,6 +141,7 @@ class App:
             return
         self.writeToFile()
 
+
     def createNewFile(self):
         keepGoing = self.handleChanges()
         if not keepGoing:
@@ -230,40 +154,10 @@ class App:
         
 
     def guessPassword(self,encryptedText):
-        # called by openFile and rewritePassword (and timeOut)
-        # basically the authentication function, and is based on the last saved encrypted text
-        self.COUNT = 3
-        def doNothing():
-            pass
-        def verifyPassword(event):
-            self.COUNT -= 1
-            if self.COUNT==0:
-                popUp.destroy()
-                self.parent.destroy()
-                return
-            pWord = pText.get()
-            pText.delete(0,"end")
-            try:
-                K = getKey(pWord)
-                decryptedText = K.decrypt(encryptedText.encode()).decode()
-                popUp.destroy()
-                self.Key = K
-                self.decryptedText = decryptedText
-            except InvalidToken as e:
-                print(f"Incorrect password - {self.COUNT} tries remain")
-        self.parent.withdraw()
-        popUp = tk.Toplevel(self.parent)
-        popUp.title("")
-        popUp.geometry("300x200")
-        popUp.bind('<Return>',verifyPassword)
-        popUp.protocol("WM_DELETE_WINDOW", doNothing)
-        pText = tk.Entry(popUp, show="*", width=30)
-        pText.pack()
-        self.parent.wait_window(popUp)
-        try:
-            self.parent.deiconify()
-        except:
-            sys.exit(0)
+        key, decryptedText = guessPasswordHelper(self.parent, encryptedText)
+        self.Key = key
+        self.decryptedText = decryptedText
+
 
     def handleChanges(self):
         class ChangesClass:
@@ -271,40 +165,8 @@ class App:
                 self.keepGoing = True
         c = ChangesClass()
         hasChanged = self.textChanged()
-        def pushButton(eventType):
-            self.textBox['bg'] = 'white'
-            self.textBox['fg'] = 'black'
-            popUp.destroy()
-            if eventType == "s":
-                self.saveFile()
-            elif eventType == "c":
-                c.keepGoing = False
         if hasChanged:
-            popUp = tk.Toplevel(self.parent)
-            popUp.title("")
-            #popUp.geometry("450x200")
-            popUp['bg'] = '#ffffff'
-            popUp.focus_set()
-            popUp.grab_set()
-            popUp.protocol("WM_DELETE_WINDOW", lambda : pushButton("c"))
-            #popUp.wm_attributes('-fullscreen','True')
-            #popUp.overrideredirect(True)
-            #popUp.attributes('-disabled', True)
-            popUp.bind("<Return>",lambda event : pushButton("s"))
-            popUp.bind("<Escape>",lambda event : pushButton("c"))
-            self.textBox['bg'] = '#888888'
-            self.textBox['fg'] = '#686868'
-            fileName = self.fileName.split('/')[-1] if self.fileName else DEFAULT_UNTITLED
-            saveText = tk.Label(popUp, text=f'Would you like to save changes to "{fileName}"?', bg=popUp['bg'])
-            saveText.grid(row=0,columnspan=3,pady=15,padx=20)
-            saveButton = tk.Button(popUp,text="Save",height = 1, width=10, bg='#0969ff', fg='#ffffff', command = lambda : pushButton("s"))
-            saveButton.grid(row=1,column=0,pady=20)
-            discardButton = tk.Button(popUp,text="Don't save",height=1, width=10,command = lambda : pushButton("d"))
-            discardButton.grid(row=1,column=1,pady=20)
-            cancelButton = tk.Button(popUp,text="Cancel",height=1,width=10,command = lambda : pushButton("c"))
-            cancelButton.grid(row=1,column=2,pady=20)
-            popUp.geometry("+%d+%d" %(self.parent.winfo_x()+(self.parent.bbox()[2]-306)//2,self.parent.winfo_y()+min(300,(self.parent.bbox()[3]-117)//2))) # (307,117) is the size of popUp when "Untitled.txt" is the fileName
-            self.parent.wait_window(popUp)
+            c = saveChangesPopUp(self.parent,self.textBox, self.fileName, self.saveFile, c)
         return c.keepGoing
 
 
@@ -313,9 +175,8 @@ class App:
         if not keepGoing:
             return
         # Open file
-        fileObj = askopenfile(title="Please select a file",
-                              filetypes=[('All Text Files',['.txt','.json', '.autosave']),
-                                         ('.txt','.txt'), ('.json','.json')])
+        fileTypes = [('All Text Files',['.txt','.json', '.autosave']), ('.txt','.txt'), ('.json','.json')]
+        fileObj = askopenfile(title="Please select a file", filetypes=fileTypes)
         if fileObj:
             self.fileName = fileObj.name
             self.parent.title(self.fileName)
