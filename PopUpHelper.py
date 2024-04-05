@@ -18,8 +18,10 @@ def newPasswordPopUp(parent):
             self.savePopUp.destroy()
         def popUp(self,pVerb):
             self.savePopUp = tk.Toplevel(self.parent)
+            self.savePopUp.iconbitmap('notepadIcon.ico')
             self.savePopUp.protocol("WM_DELETE_WINDOW", self.quitWindow)
             self.savePopUp.geometry("300x120")
+            self.savePopUp.geometry("+%d+%d" %(self.parent.winfo_x()+(self.parent.bbox()[2]-306)//2,self.parent.winfo_y()+min(300,(self.parent.bbox()[3]-117)//2)))
             self.savePopUp.focus_set()
             self.savePopUp.grab_set()
             label = tk.Label(self.savePopUp, text="Please "+pVerb+" password")
@@ -60,6 +62,7 @@ def saveChangesPopUp(parent, textBox, thisFileName, saveFileFun, c):
         elif eventType == "c":
             c.keepGoing = False
     popUp = tk.Toplevel(parent)
+    popUp.iconbitmap('notepadIcon.ico')
     popUp.title("")
     #popUp.geometry("450x200")
     popUp['bg'] = '#ffffff'
