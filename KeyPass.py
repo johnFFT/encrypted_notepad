@@ -45,6 +45,7 @@ def guessPasswordHelper(parent, encryptedText):
                 print(f"Incorrect password - {V.COUNT} tries remain")
         parent.withdraw()
         popUp = tk.Toplevel(parent)
+        popUp.iconbitmap('notepadIcon.ico')
         popUp.title("")
         popUp.geometry("300x200")
         popUp.bind('<Return>',verifyPassword)
@@ -60,8 +61,8 @@ def guessPasswordHelper(parent, encryptedText):
 
 
 
-
-def timeoutGuesser(parent):
+# If the key is defined, I would like 'verifyPassword' to work in a similar way to how it works in 'guessPasswordHelper'
+def timeoutGuesser(parent, popUpLabel="Session timed out; please enter password"):
     def verifyPassword():
         pWord = pText.get()
         pText.delete(0,"end")
@@ -69,12 +70,13 @@ def timeoutGuesser(parent):
             popUp.destroy()
     parent.withdraw()
     popUp = tk.Toplevel(parent)
+    popUp.iconbitmap('notepadIcon.ico')
     popUp.title("Timeout")
     popUp.geometry("400x200")
     popUp.geometry("+%d+%d" %(parent.winfo_x()+(parent.bbox()[2]-306)//2,parent.winfo_y()+min(300,(parent.bbox()[3]-117)//2)))
-    popUp.bind('<Return>', lambda e : verifyPassword())
+    popUp.bind('<Return>', lambda _ : verifyPassword())
     popUp.protocol("WM_DELETE_WINDOW", doNothing)
-    pLabel = tk.Label(popUp, text="Session timed out; please enter password", font=('Segoe UI',12))
+    pLabel = tk.Label(popUp, text=popUpLabel, font=('Segoe UI',12))
     pLabel.pack()
     pText = tk.Entry(popUp, show="*", width=30)
     pText.pack()
@@ -83,6 +85,58 @@ def timeoutGuesser(parent):
         parent.deiconify()
     except:
         sys.exit(0)
+
+
+# Create a pop-up window to change the value of self.timeoutLength in the app class
+# I would like the 'pText' entry to only allow numbers (no letters or spaces) - https://stackoverflow.com/questions/8959815/restricting-the-value-in-tkinter-entry-widget
+def configureTimeoutOptions(parent, textBox, timeOutValue):
+    timeoutGuesser(parent, popUpLabel="Please enter password to configure timeout options")
+    class T:
+        def __init__(self, timeOutValue) -> None:
+            self.timeOutValue = timeOutValue
+    t = T(timeOutValue)
+    def exitWindow():
+        textBox['bg'] = 'white'
+        textBox['fg'] = 'black'
+        popUp.destroy()
+    def changeTimeoutValue():
+        if disableTimeout.get():
+            t.timeOutValue = None
+        else:
+            t.timeOutValue = int(pText.get()) * 1000
+        exitWindow()
+    def validate(value):
+        if str.isdigit(value) or value == "":
+            return True
+        return False
+    popUp = tk.Toplevel(parent)
+    vcmd = (popUp.register(validate))
+    popUp.geometry("400x200")
+    popUp.geometry("+%d+%d" %(parent.winfo_x()+(parent.bbox()[2]-306)//2,parent.winfo_y()+min(300,(parent.bbox()[3]-117)//2))) 
+    popUp.iconbitmap('notepadIcon.ico')
+    popUp.protocol("WM_DELETE_WINDOW", exitWindow)
+    popUp.focus_set()
+    popUp.grab_set()
+    textBox['bg'] = '#888888'
+    textBox['fg'] = '#686868'
+    # handle logic here
+    pText = tk.Entry(popUp, width=30, validate='all', validatecommand=(vcmd, '%P'))
+    pText.insert(0, str(timeOutValue//1000) if timeOutValue else "")
+    disableTimeout = tk.BooleanVar(value= False if timeOutValue else True)
+    def activateTimeout():
+        if disableTimeout.get():
+            pText.configure(state = 'disabled')
+        else:
+            pText.configure(state = 'normal')
+    activateTimeout()
+    check = tk.Checkbutton(popUp, variable=disableTimeout, text="Disable timeout?", command=activateTimeout)
+    check.pack()
+    button = tk.Button(popUp, text="Save", command=changeTimeoutValue)
+    button.pack()
+    pText.bind('<Return>', lambda _ : changeTimeoutValue())
+    pText.pack()
+    parent.wait_window(popUp)
+    return t.timeOutValue
 
 
 def doNothing():

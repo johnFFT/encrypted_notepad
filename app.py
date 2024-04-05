@@ -81,15 +81,14 @@ class App:
 
     def timeout(self):
         timeoutGuesser(self.parent)
-        self.timeoutId = self.parent.after(self.timeoutLength,self.timeout)
+        self.timeoutId = self.parent.after(self.timeoutLength,self.timeout) if self.timeoutLength else None
 
     def configTimeout(self):
         if self.timeoutId is not None:
             self.parent.after_cancel(self.timeoutId)
         timeoutLength = configureTimeoutOptions(self.parent, self.textBox, self.timeoutLength)
-        if timeoutLength:
-            self.timeoutLength = timeoutLength
-            self.timeoutId = self.parent.after(self.timeoutLength,self.timeout)
+        self.timeoutLength = timeoutLength
+        self.timeoutId = self.parent.after(self.timeoutLength,self.timeout) if timeoutLength else None
 
 
     ######### Text change helpers #########
