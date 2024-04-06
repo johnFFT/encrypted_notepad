@@ -25,8 +25,6 @@ def guessPasswordHelper(parent, encryptedText):
                   self.Key = None
                   self.decryptedText = ""
         V = Vars()
-        def doNothing():
-            pass
         def verifyPassword(_):
             V.COUNT -= 1
             if V.COUNT==0:
