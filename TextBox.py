@@ -1,5 +1,6 @@
 import tkinter as tk
-import tkinter.font as tkFont
+#from tkinter.font import Font
+#from tkinter import font
 import tkinter.scrolledtext as scrolledtext
 
 
@@ -12,11 +13,10 @@ class TextBox(scrolledtext.ScrolledText):
           #
           # Experiment
           self.insert(1.0,"This is a test\nasdfsafsd\n\n\naaaaaaaaaaaaaaaaaa\n\nlllllsdfsd")
-          self.tag_config('highlightline', background='yellow', font='TkFixedFont', relief='raised')
-          self.tag_config('highlightline2', foreground='blue', font='TkFixedFont', relief='raised')
-          self.bind('<Control-b>',lambda _ : self.addFontTags("highlightline"))
-          self.bind('<Control-p>',lambda _ : self.addFontTags("highlightline2"))
-          self.bind('<Control-m>', lambda _ : self.printForDebug())
+          self.tag_config('bold', font=('Courier', '11', 'bold'))
+          self.tag_config('highlightline', background='yellow', foreground='blue', relief='raised')
+          self.bind('<Control-b>',lambda _ : self.addFontTags("bold"))
+          self.bind('<Control-p>',lambda _ : self.addFontTags("highlightline"))
 
 
     def addFontTags(self, tagName):
@@ -36,7 +36,18 @@ class TextBox(scrolledtext.ScrolledText):
               '''
          
 
+    def spellCheck(self):
+          pass
+
+
+
+'''
+
+     self.bind('<Control-m>', lambda _ : self.printForDebug())
+
     def printForDebug(self):
+         #print(font.nametofont(self['font']).configure()["family"])
+         print(font.nametofont(self.cget('font')))
          print("--------------")
          if self.tag_ranges("sel"):
               current_tags = self.tag_names("sel.first")
@@ -47,12 +58,7 @@ class TextBox(scrolledtext.ScrolledText):
               print(x, self.tag_ranges(x))
 
 
-    def spellCheck(self):
-          pass
 
-
-
-'''
 def make_bold():
     aText.tag_add("bt", "sel.first", "sel.last")
 
@@ -65,4 +71,18 @@ aButton = tk.Button(lord, text="bold", command=make_bold)
 aButton.grid()
 
 aText.tag_config("bt", font=("Georgia", "12", "bold"))
+
+
+my_font = Font(
+    family = 'Times',
+    size = 30,
+    weight = 'bold',
+    slant = 'roman',
+    underline = 1,
+    overstrike = 0
+)
+
+self.tag_config('highlightline', background='yellow', font=('TkFixedFont'), relief='raised')
+
+
 '''
